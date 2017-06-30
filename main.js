@@ -1,10 +1,9 @@
 const electron = require('electron')
-var shell = require('shelljs')
-shell.config.execPath = shell.which('node')
-const child_process = require('child_process');
 var Docker = require('dockerode');
 var docker = new Docker({socketPath: '/var/run/docker.sock'});
-
+const {ipcMain} = electron;
+var IPCStream = require('electron-ipc-stream')
+var ipcs = new IPCStream('progress')
 // Module to control application life.
 const app = electron.app
 // Module to create native browser window.
@@ -17,7 +16,7 @@ const url = require('url')
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
 
-function loadPage(page){
+function loadPage(page,cb){
    mainWindow = new BrowserWindow({width: 800, height: 600,frame:true})
 
     // and load the index.html of the app.
@@ -32,18 +31,17 @@ function loadPage(page){
       // in an array if your app supports multi windows, this is the time
       // when you should delete the corresponding element.
       mainWindow = null
-      shell.exit(0);
+      app.quit()
     })
+    cb();
 }
 function createWindow () {
-  if (!shell.which('docker')) {
-    loadPage("pages/notinstalled.html");
-  }
-  else {
+    console.log(path.dirname(__dirname));
     var container = docker.getContainer('che');
     // query API for container info
     container.inspect(function (err, data) {
       if(err!=null){
+          var dirpath = __dirname;
           docker.createContainer({
             Image: 'eclipse/che',
             Cmd: ['start'],
@@ -52,7 +50,7 @@ function createWindow () {
               '/data':{}
             },
             'Hostconfig': {
-              'Binds': ['/var/run/docker.sock:/var/run/docker.sock','/Users/jjonagam/che:/data']
+              'Binds': ['/var/run/docker.sock:/var/run/docker.sock',path.dirname(__dirname)+'/che:/data']
             }
           }, function(err, container) {
             container.attach({
@@ -61,36 +59,22 @@ function createWindow () {
               stderr: true,
               tty: true
             }, function(err, stream) {
-              stream.pipe(process.stdout);
-
               container.start(function(err, data) {
                 console.log("Done",err,data);
+                loadPage("index.html",function(){
+                  var ipcs = new IPCStream('progress', mainWindow)
+                  stream.pipe(ipcs);
+                })
               });
             });
           });
       }
+      else{
+        loadPage("index.html",function(){
+          
+        })
+      }
     });
-    /*
-    if(shell.exec('docker inspect che',{async:false}).code !== 0) {
-      //loadPage("pages/runche.html");
-      /*child_process.spawnSync('docker', [ 'run', '--rm', '-ti', 'hello-world' ], {
-        stdio: 'inherit'
-      }); 
-      shell.exec("docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd)/che:/data eclipse/che start",{async:false,stdio: 'pipe'},function(code, stdout, stderr){
-          console.log('Exit code:', code);
-          console.log('Program output:', stdout);
-          console.log('Program stderr:', stderr);
-          if(code==0)
-          loadPage("index.html");
-      })
-      
-    }
-    else{
-      loadPage("index.html");
-    }
-    */
-  }
-  
 }
 
 // This method will be called when Electron has finished
@@ -117,7 +101,7 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
-const {ipcMain} = electron;
+
 
 ipcMain.on('close-main-window', function () {
     app.quit();
