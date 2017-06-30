@@ -20,16 +20,12 @@
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "~1.6.2",
-    "electron-builder": "^19.8.0"
+    "electron-builder": "^19.11.1"
   },
   "build": {
     "appId": "eclipse.che.desktop",
     "mac": {
       "category": "eclipse.che.desktop"
     }
-  },
-  "dependencies": {
-    "dockerode": "^2.5.0",
-    "electron-ipc-stream": "^0.2.0"
   }
 }

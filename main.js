@@ -1,9 +1,6 @@
 const electron = require('electron')
-var Docker = require('dockerode');
-var docker = new Docker({socketPath: '/var/run/docker.sock'});
 const {ipcMain} = electron;
-var IPCStream = require('electron-ipc-stream')
-var ipcs = new IPCStream('progress')
+
 // Module to control application life.
 const app = electron.app
 // Module to create native browser window.
@@ -36,50 +33,10 @@ function loadPage(page,cb){
     cb();
 }
 function createWindow () {
-    console.log(path.dirname(__dirname));
-    var che = 'che';
-    if (!fs.existsSync(path.join(path.dirname(__dirname),che))){
-        fs.mkdirSync(path.join(path.dirname(__dirname),che));
-    }
-    var container = docker.getContainer('che');
-    // query API for container info
-    container.inspect(function (err, data) {
-      if(err!=null){
-          var dirpath = __dirname;
-          docker.createContainer({
-            Image: 'eclipse/che',
-            Cmd: ['start'],
-            'Volumes': {
-              '/var/run/docker.sock': {},
-              '/data':{}
-            },
-            'Hostconfig': {
-              'Binds': ['/var/run/docker.sock:/var/run/docker.sock',path.join(path.dirname(__dirname),che)+':/data']
-            }
-          }, function(err, container) {
-            container.attach({
-              stream: true,
-              stdout: true,
-              stderr: true,
-              name: 'che',
-              tty: true
-            }, function(err, stream) {
-              container.start(function(err, data) {
-                stream.pipe(process.stdout);
-                loadPage("index.html",function(){
-                  var ipcs = new IPCStream('progress', mainWindow)
-                  stream.pipe(ipcs);
-                })
-              });
-            });
-          });
-      }
-      else{
-        loadPage("index.html",function(){
-
-        })
-      }
+    loadPage("pages/start-che.html",function(){
+      
     });
+    
 }
 
 // This method will be called when Electron has finished
