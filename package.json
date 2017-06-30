@@ -29,11 +29,7 @@
     }
   },
   "dependencies": {
-    "concat-stream": "^1.6.0",
     "dockerode": "^2.5.0",
-    "electron-ipc-stream": "^0.2.0",
-    "execa": "^0.7.0",
-    "linerstream": "^0.2.0",
-    "shelljs": "^0.7.8"
+    "electron-ipc-stream": "^0.2.0"
   }
 }

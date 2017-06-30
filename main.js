@@ -8,7 +8,7 @@ var ipcs = new IPCStream('progress')
 const app = electron.app
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow
-
+const fs = require('fs');
 const path = require('path')
 const url = require('url')
 
@@ -37,6 +37,10 @@ function loadPage(page,cb){
 }
 function createWindow () {
     console.log(path.dirname(__dirname));
+    var che = 'che';
+    if (!fs.existsSync(path.join(path.dirname(__dirname),che))){
+        fs.mkdirSync(path.join(path.dirname(__dirname),che));
+    }
     var container = docker.getContainer('che');
     // query API for container info
     container.inspect(function (err, data) {
@@ -50,17 +54,18 @@ function createWindow () {
               '/data':{}
             },
             'Hostconfig': {
-              'Binds': ['/var/run/docker.sock:/var/run/docker.sock',path.dirname(__dirname)+'/che:/data']
+              'Binds': ['/var/run/docker.sock:/var/run/docker.sock',path.join(path.dirname(__dirname),che)+':/data']
             }
           }, function(err, container) {
             container.attach({
               stream: true,
               stdout: true,
               stderr: true,
+              name: 'che',
               tty: true
             }, function(err, stream) {
               container.start(function(err, data) {
-                console.log("Done",err,data);
+                stream.pipe(process.stdout);
                 loadPage("index.html",function(){
                   var ipcs = new IPCStream('progress', mainWindow)
                   stream.pipe(ipcs);
@@ -71,7 +76,7 @@ function createWindow () {
       }
       else{
         loadPage("index.html",function(){
-          
+
         })
       }
     });
@@ -105,4 +110,10 @@ app.on('activate', function () {
 
 ipcMain.on('close-main-window', function () {
     app.quit();
+});
+
+ipcMain.on('load-page', function (msg) {
+      loadPage("index.html",function(){
+        console.log('opened main page');
+      })
 });
